@@ -7,122 +7,105 @@
 
 import Foundation
 
-Sushi()
-
-func Sushi() {
-  
-  struct DFS {
-    private(set) var marked: [Bool]
-    private(set) var depth: [Int]
-    private(set) var count: Int = 0
-    private let s: Int
-    
-    public init(G: Graph, s: Int) {
-      self.s = s
-      marked = [Bool](repeating: false, count: G.V)
-      depth = [Int](repeating: -1, count: G.V)
-      dfs(G, v: s, d: 0)
-    }
-    
-    private mutating func dfs(_ G: Graph, v: Int, d: Int) {
-      marked[v] = true
-      depth[v] = d
-      count += 1
-      for u in G.adj(to: v) {
-        if !marked[u] {
-          dfs(G, v: u, d: d + 1)
+func containsAll(array: [Int], set: Set<Int>) -> Bool {
+    for i in array {
+        if !set.contains(i) {
+            return false
         }
-      }
     }
-    
-    public func visited(v: Int) -> Bool {
-      return marked[v]
-    }
-    
-    public func depth(of v: Int) -> Int {
-      return depth[v]
-    }
-  }
-
-  class Graph {
-    let V: Int
-    private(set) var E: Int
-    private var adj: [Set<Int>]
-    
-    public init(V: Int) {
-      self.V = V
-      self.E = 0
-      self.adj = [Set<Int>](repeating: Set<Int>(), count: V)
-    }
-    
-    public func addEdge(from u: Int, to v: Int) {
-      E += 1
-      adj[u].insert(v)
-      adj[v].insert(u)
-    }
-    
-    public func degree(of v: Int) -> Int {
-      return adj[v].count
-    }
-    
-    public func adj(to v: Int) -> Set<Int> {
-      return adj[v]
-    }
-    
-    public func removeAllEdges(from v: Int) {
-      E -= adj[v].count
-      for u in adj[v] {
-        adj[u].remove(v)
-      }
-      adj[v].removeAll()
-    }
-  }
-  
-  func removeLeaves(from graph: Graph, v: Int, sushi: Set<Int>, visited: inout [Bool]) {
-    visited[v] = true
-    for u in graph.adj(to: v) {
-      if !visited[u] {
-        removeLeaves(from: graph, v: u, sushi: sushi, visited: &visited)
-      }
-    }
-    if graph.degree(of: v) == 1 && !sushi.contains(v) {
-      graph.removeAllEdges(from: v)
-    }
-  }
-  
-  let firstLine = readLine()!.split(separator: " ").map { Int($0)! }
-  let n = firstLine[0]
-  
-  let nextLine = readLine()!.split(separator: " ").map { Int($0)! }
-  let realSushi = Set<Int>(nextLine)
-  
-  let graph = Graph(V: n)
-  for _ in 0..<n - 1 {
-    let edge = readLine()!.split(separator: " ").map { Int($0)! }
-    graph.addEdge(from: edge[0], to: edge[1])
-  }
-  
-  let start = realSushi.first!
-  var visited = [Bool](repeating: false, count: graph.V)
-  removeLeaves(from: graph, v: start, sushi: realSushi, visited: &visited)
-  
-  let dfs = DFS(G: graph, s: start)
-  var maxVertex = start
-  for i in 0..<n {
-    if dfs.depth(of: i) > dfs.depth(of: maxVertex) {
-      maxVertex = i
-    }
-  }
-  
-  let dfs2 = DFS(G: graph, s: maxVertex)
-  var diameter = maxVertex
-  for i in 0..<n {
-    if dfs2.depth(of: i) > dfs2.depth(of: diameter) {
-      diameter = i
-    }
-  }
-  
-  print(2 * (graph.E) - dfs2.depth(of: diameter))
+    return true
 }
 
+func sushi() {
+    struct Restaurant {
+        let number: Int
+        let adjacent: [Int]
+        let previousRestaurant: Int
+        let traveledRestaurants: Set<Int>
+        let travelTime: Int
+    }
+    
+    print("Please input for Sushi Restaurant Reviews")
+    let firstLine = readLine()!.split(separator: " ").map { Int($0) }
+    let numOfN = firstLine[0]!
+    let numOfM = firstLine[1]!
+    let indexesOfM: [Int] = readLine()!.split(separator: " ").map { Int($0)! }
+    
+    var smallestTravelTime = 2 * numOfN
+    
+    var paths = [[Int]](repeating: [Int](repeating: 0, count: 0), count: numOfN)
+    
+    for _ in 1..<numOfN {
+        let pathInput = readLine()!.split(separator: " ").map { Int($0) }
+        paths[pathInput[0]!].append(pathInput[1]!)
+        paths[pathInput[1]!].append(pathInput[0]!)
+    }
+    
+    func findSmallestTravelTime(startRestaurant: Restaurant) {
+        let q = Queue<Restaurant>()
+        q.enqueue(item: startRestaurant)
+        
+        while !q.isEmpty() {
+            
+            let sq = q.dequeue()!
+            let number = sq.number
+            let adjacentRestaurants: [Int] = sq.adjacent
+            let previousReataurant: Int = sq.previousRestaurant
+            var traveledRestaurants: Set<Int> = sq.traveledRestaurants
+            let travelTime = sq.travelTime
+            traveledRestaurants.insert(number)
+            
+            if travelTime > smallestTravelTime {
+                break
+            }
+            if containsAll(array: indexesOfM, set: traveledRestaurants) {
+                if travelTime < smallestTravelTime {
+                    smallestTravelTime = travelTime
+                }
+                break
+            }
 
+            for i in 0..<adjacentRestaurants.count {
+                let adjacentRestaurantNumber = adjacentRestaurants[i]
+                if adjacentRestaurantNumber == previousReataurant && adjacentRestaurants.count > 1 {
+                    continue
+                }
+                q.enqueue(item: Restaurant(number: adjacentRestaurantNumber, adjacent: paths[adjacentRestaurantNumber], previousRestaurant: number, traveledRestaurants: traveledRestaurants, travelTime: travelTime + 1))
+            }
+        }
+    }
+    for restaurant in indexesOfM {
+        let emptySet: Set<Int> = []
+        findSmallestTravelTime(startRestaurant: Restaurant(number: restaurant, adjacent: paths[restaurant], previousRestaurant: -1, traveledRestaurants: emptySet, travelTime: 0))
+    }
+    print(smallestTravelTime)
+}
+
+sushi()
+/*
+ Sample Input 1
+8 2
+5 2
+0 1
+0 2
+2 3
+4 3
+6 1
+1 5
+7 3
+ Sample Output 1
+3
+ 
+ Sample Input 2
+8 5
+0 6 4 3 7
+0 1
+0 2
+2 3
+4 3
+6 1
+1 5
+7 3
+ Sample Output 2
+7
+ */
